@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-harkx-blue: #00529f;
+  --color-harkx-teal: #0b937d;
+  --color-harkx-green: #6abf2f;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+}
+
+body {
+  background: #000;
+  color: #fff;
+}
+
+.card-spotlight {
+  position: relative;
+  overflow: hidden;
+  --mouse-x: 50%;
+  --mouse-y: 50%;
+}
+
+.card-spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), rgb(11 147 125 / 0.25), transparent 80%);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+
+.card-spotlight:hover::before,
+.card-spotlight:focus-within::before {
+  opacity: 0.6;
+}
