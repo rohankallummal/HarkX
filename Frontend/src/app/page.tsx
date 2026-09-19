@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useState } from "react";
+import { skillFileError } from "./skillFile";
 
 type Integration = { name: string; logo?: string; glyph?: React.ReactNode };
 
@@ -46,19 +47,14 @@ const withTint = (c: Category) => categories[c].items.map((item) => ({ ...item, 
 const allIntegrations = categoryNames.flatMap(withTint);
 
 function Card({ children, round = false }: { children: React.ReactNode; round?: boolean }) {
-  const ref = useRef<HTMLElement>(null);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    ref.current?.style.setProperty("--mouse-x", `${e.clientX - rect.left}px`);
-    ref.current?.style.setProperty("--mouse-y", `${e.clientY - rect.top}px`);
-  };
-
   return (
     <div className={`${round ? "rounded-full" : "w-full max-w-sm rounded-3xl"} bg-gradient-to-tr from-harkx-blue/20 to-harkx-green/20 p-[2px] transition-colors duration-500 hover:from-harkx-blue/40 hover:to-harkx-green/40`}>
       <section
-        ref={ref}
-        onMouseMove={handleMouseMove}
+        onMouseMove={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          e.currentTarget.style.setProperty("--mouse-x", `${e.clientX - rect.left}px`);
+          e.currentTarget.style.setProperty("--mouse-y", `${e.clientY - rect.top}px`);
+        }}
         className={`card-spotlight bg-[#1f1f1f] ${round ? "rounded-full" : "rounded-3xl"}`}
       >
         {children}
@@ -67,11 +63,9 @@ function Card({ children, round = false }: { children: React.ReactNode; round?: 
   );
 }
 
-const focusRing =
-  "outline-none focus-visible:ring-2 focus-visible:ring-harkx-teal";
+const focusRing = "outline-none focus-visible:ring-2 focus-visible:ring-harkx-teal";
 
-const stepBody =
-  "relative flex flex-col items-center px-6 pb-8 pt-14 text-center sm:px-8";
+const stepBody = "relative flex flex-col items-center px-6 pb-8 pt-14 text-center sm:px-8";
 
 // Windows Explorer labels binary units as KB/MB, so match it — users compare the two.
 const formatSize = (bytes: number) =>
@@ -137,127 +131,114 @@ export default function Home() {
             <h2 className="text-balance text-2xl font-bold tracking-tight">
               {adding ? "Name your Integration" : "Select integration point"}
             </h2>
-            <div className="mt-6 flex w-full flex-col">
-              {adding ? (
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    pick({ name: customName.trim() });
-                  }}
-                  className="flex flex-1 flex-col gap-3 text-left"
+            {adding ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  pick({ name: customName.trim() });
+                }}
+                className="mt-6 flex w-full flex-col gap-3 text-left"
+              >
+                <input
+                  aria-label="Name of the integration point"
+                  value={customName}
+                  onChange={(e) => setCustomName(e.target.value)}
+                  placeholder="e.g. Webex"
+                  autoFocus
+                  required
+                  maxLength={40}
+                  className="h-11 w-full rounded-xl border border-white/15 bg-transparent px-4 text-sm text-white outline-none transition-colors placeholder:text-gray-500 focus:border-harkx-teal"
+                />
+                <button
+                  type="submit"
+                  disabled={!customName.trim()}
+                  className={`h-11 w-full cursor-pointer rounded-full bg-white text-sm font-semibold text-black transition-colors hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-40 ${focusRing}`}
                 >
+                  Continue
+                </button>
+              </form>
+            ) : (
+              <>
+                <div className="relative mt-6 w-full">
+                  <Icon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-500">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.3-4.3" />
+                  </Icon>
                   <input
-                    aria-label="Name of the integration point"
-                    value={customName}
-                    onChange={(e) => setCustomName(e.target.value)}
-                    placeholder="e.g. Webex"
-                    autoFocus
-                    required
+                    type="search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search integrations"
                     maxLength={40}
-                    className="h-11 w-full rounded-xl border border-white/15 bg-transparent px-4 text-sm text-white outline-none transition-colors placeholder:text-gray-500 focus:border-harkx-teal"
+                    aria-label="Search integrations"
+                    className="h-11 w-full rounded-xl border border-white/15 bg-transparent pl-10 pr-4 text-sm text-white outline-none transition-colors placeholder:text-gray-500 focus:border-harkx-teal"
                   />
-                  <button
-                    type="submit"
-                    disabled={!customName.trim()}
-                    className={`h-11 w-full cursor-pointer rounded-full bg-white text-sm font-semibold text-black transition-colors hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-40 ${focusRing}`}
-                  >
-                    Continue
-                  </button>
-                </form>
-              ) : (
-                <>
-                  <div className="relative">
-                    <Icon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-500">
-                      <circle cx="11" cy="11" r="8" />
-                      <path d="m21 21-4.3-4.3" />
-                    </Icon>
-                    <input
-                      type="search"
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Search integrations"
-                      aria-label="Search integrations"
-                      className="h-11 w-full rounded-xl border border-white/15 bg-transparent pl-10 pr-4 text-sm text-white outline-none transition-colors placeholder:text-gray-500 focus:border-harkx-teal"
-                    />
-                  </div>
-                  {/* the tabs make way for a result count while searching, in the same row */}
-                  <div className="mt-4 flex h-7 justify-center gap-6">
-                    {q ? (
-                      <p aria-live="polite" className="text-sm text-gray-400">
-                        {shown.length} {shown.length === 1 ? "match" : "matches"}
-                      </p>
-                    ) : (
-                      <div role="tablist" aria-label="Integration type" className="flex gap-6">
-                        {categoryNames.map((c, i) => (
-                          <button
-                            key={c}
-                            role="tab"
-                            aria-selected={category === c}
-                            aria-controls="integration-list"
-                            tabIndex={category === c ? 0 : -1}
-                            onClick={() => setCategory(c)}
-                            onKeyDown={(e) => {
-                              const dir = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
-                              if (!dir) return;
-                              const next = categoryNames[(i + dir + categoryNames.length) % categoryNames.length];
-                              setCategory(next);
-                              (e.currentTarget.parentElement?.children[categoryNames.indexOf(next)] as HTMLElement).focus();
-                            }}
-                            className={`cursor-pointer border-b-2 pb-1 text-sm font-medium transition-colors ${category === c ? "border-white text-white" : "border-transparent text-gray-400 hover:text-white"} ${focusRing}`}
-                          >
-                            {c}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {/* Fixed at exactly two rows of tiles; more than four scroll inside it (scrollbar hidden), so the card never grows. */}
-                  <div
-                    id="integration-list"
-                    role={q ? undefined : "tabpanel"}
-                    key={q ? "search" : category}
-                    className="-mx-0.5 mt-3 h-[12.5rem] overflow-y-auto p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                  >
-                    {shown.length ? (
-                      <div className="grid grid-cols-2 gap-3">
-                        {shown.map((integration) => (
-                          <button
-                            key={integration.name}
-                            onClick={() => pick(integration)}
-                            className={`flex h-[5.75rem] cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-white/10 px-3 text-sm font-medium text-gray-300 transition-colors hover:border-white/25 hover:text-white ${focusRing}`}
-                          >
-                            {integration.logo ? (
-                              <Image src={integration.logo} alt="" width={32} height={32} className="size-8 shrink-0 object-contain" />
-                            ) : (
-                              <span className={`grid size-8 shrink-0 place-items-center rounded-lg ${integration.tint}`}>
-                                <Icon className="size-[18px]">{integration.glyph}</Icon>
-                              </span>
-                            )}
-                            <span className="max-w-full truncate">{integration.name}</span>
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => pick({ name: query.trim().slice(0, 40) })}
-                        className={`w-full cursor-pointer rounded-xl border border-dashed border-white/20 px-4 py-3 text-sm font-medium text-gray-300 transition-colors hover:border-white/40 hover:text-white ${focusRing}`}
-                      >
-                        Add “{query.trim().slice(0, 40)}” as a new integration point
-                      </button>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => {
-                      setCustomName(query.trim().slice(0, 40));
-                      setAdding(true);
-                    }}
-                    className={`mt-3 h-11 w-full shrink-0 cursor-pointer rounded-full border border-white/15 text-sm font-semibold text-white transition-colors hover:border-white/30 hover:bg-white/5 ${focusRing}`}
-                  >
-                    Add your own
-                  </button>
-                </>
-              )}
-            </div>
+                </div>
+                {/* the tabs make way for a result count while searching, in the same row */}
+                <div className="mt-4 flex h-7 justify-center gap-6">
+                  {q ? (
+                    <p aria-live="polite" className="text-sm text-gray-400">
+                      {shown.length} {shown.length === 1 ? "match" : "matches"}
+                    </p>
+                  ) : (
+                    // native radios: arrow keys move between categories for free
+                    <div role="radiogroup" aria-label="Integration type" className="flex gap-6">
+                      {categoryNames.map((c) => (
+                        <label
+                          key={c}
+                          className={`cursor-pointer border-b-2 pb-1 text-sm font-medium transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-harkx-teal ${category === c ? "border-white text-white" : "border-transparent text-gray-400 hover:text-white"}`}
+                        >
+                          <input type="radio" name="category" checked={category === c} onChange={() => setCategory(c)} className="sr-only" />
+                          {c}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {/* Fixed at exactly two rows of tiles; more than four scroll inside it (scrollbar hidden), so the card never grows. */}
+                <div
+                  key={q ? "search" : category}
+                  className="-mx-0.5 mt-3 h-[12.5rem] self-stretch overflow-y-auto p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                >
+                  {shown.length ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      {shown.map((integration) => (
+                        <button
+                          key={integration.name}
+                          onClick={() => pick(integration)}
+                          className={`flex h-[5.75rem] cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-white/10 px-3 text-sm font-medium text-gray-300 transition-colors hover:border-white/25 hover:text-white ${focusRing}`}
+                        >
+                          {integration.logo ? (
+                            <Image src={integration.logo} alt="" width={32} height={32} className="size-8 shrink-0 object-contain" />
+                          ) : (
+                            <span className={`grid size-8 shrink-0 place-items-center rounded-lg ${integration.tint}`}>
+                              <Icon className="size-[18px]">{integration.glyph}</Icon>
+                            </span>
+                          )}
+                          <span className="max-w-full truncate">{integration.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => pick({ name: query.trim() })}
+                      className={`w-full cursor-pointer rounded-xl border border-dashed border-white/20 px-4 py-3 text-sm font-medium text-gray-300 transition-colors hover:border-white/40 hover:text-white ${focusRing}`}
+                    >
+                      Add “{query.trim()}” as a new integration point
+                    </button>
+                  )}
+                </div>
+                <button
+                  onClick={() => {
+                    setCustomName(query.trim());
+                    setAdding(true);
+                  }}
+                  className={`mt-3 h-11 w-full shrink-0 cursor-pointer rounded-full border border-white/15 text-sm font-semibold text-white transition-colors hover:border-white/30 hover:bg-white/5 ${focusRing}`}
+                >
+                  Add your own
+                </button>
+              </>
+            )}
           </div>
         ) : (
           <div className={stepBody}>
@@ -272,7 +253,7 @@ export default function Home() {
             <h2 className={`${selected.logo ? "mt-4" : ""} text-balance text-2xl font-bold tracking-tight`}>
               Upload skills for {selected.name}
             </h2>
-            {/* ponytail: extension check only, and the file is held in state — nothing sends it anywhere yet */}
+            {/* ponytail: the file is held in state — nothing sends it anywhere yet */}
             {sent ? (
               <p className="mt-6 flex h-12 items-center gap-2 text-sm font-medium">
                 <Icon className="size-4 shrink-0 text-harkx-teal">
@@ -321,17 +302,17 @@ export default function Home() {
                   accept=".zip,.md"
                   aria-label="Choose a .zip or .md file"
                   className="sr-only"
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const picked = e.target.files?.[0];
-                    if (picked) {
-                      if (/\.(zip|md)$/i.test(picked.name)) {
-                        setFile(picked);
-                      } else {
-                        setError("Only .zip or .md files are allowed");
-                        setTimeout(() => setError(null), 3000);
-                      }
-                    }
                     e.target.value = "";
+                    if (!picked) return;
+                    const problem = await skillFileError(picked);
+                    if (problem) {
+                      setError(problem);
+                      setTimeout(() => setError(null), 3000);
+                    } else {
+                      setFile(picked);
+                    }
                   }}
                 />
                 <Icon className="size-5">
