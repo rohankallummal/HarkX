@@ -2,7 +2,9 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import Build, { API } from "./Build";
 import { skillFileError } from "./skillFile";
+import { focusRing, formatSize, Icon, primaryButton, RemoveButton, secondaryButton, stepBody } from "./ui";
 
 type Integration = { name: string; logo?: string; glyph?: React.ReactNode };
 
@@ -63,24 +65,6 @@ function Card({ children, round = false }: { children: React.ReactNode; round?: 
   );
 }
 
-const focusRing = "outline-none focus-visible:ring-2 focus-visible:ring-harkx-teal";
-
-const stepBody = "relative flex flex-col items-center px-6 pb-8 pt-14 text-center sm:px-8";
-
-// Windows Explorer labels binary units as KB/MB, so match it — users compare the two.
-const formatSize = (bytes: number) =>
-  bytes < 1024 * 1024
-    ? `${bytes === 0 ? 0 : Math.max(1, Math.round(bytes / 1024))} KB`
-    : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-
-function Icon({ children, className }: { children: React.ReactNode; className: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className}>
-      {children}
-    </svg>
-  );
-}
-
 function BackButton({ onClick }: { onClick: () => void }) {
   return (
     <button
@@ -101,13 +85,32 @@ export default function Home() {
   const [category, setCategory] = useState<Category>("Apps");
   const [error, setError] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [sent, setSent] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [buildId, setBuildId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [customName, setCustomName] = useState("");
   const [query, setQuery] = useState("");
 
   const q = query.trim().toLowerCase();
   const shown = q ? allIntegrations.filter((i) => i.name.toLowerCase().includes(q)) : withTint(category);
+
+  const upload = async () => {
+    setUploading(true);
+    const body = new FormData();
+    body.append("name", selected.name);
+    body.append("file", file!);
+    try {
+      const res = await fetch(`${API}/builds`, { method: "POST", body });
+      if (!res.ok) throw new Error((await res.json()).detail);
+      setBuildId((await res.json()).id);
+      setStep(3);
+    } catch (e) {
+      setError(e instanceof TypeError ? "Couldn't reach the build server" : String((e as Error).message));
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const pick = (integration: Integration) => {
     setSelected(integration);
@@ -152,7 +155,7 @@ export default function Home() {
                 <button
                   type="submit"
                   disabled={!customName.trim()}
-                  className={`h-11 w-full cursor-pointer rounded-full bg-white text-sm font-semibold text-black transition-colors hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-40 ${focusRing}`}
+                  className={primaryButton}
                 >
                   Continue
                 </button>
@@ -233,19 +236,26 @@ export default function Home() {
                     setCustomName(query.trim());
                     setAdding(true);
                   }}
-                  className={`mt-3 h-11 w-full shrink-0 cursor-pointer rounded-full border border-white/15 text-sm font-semibold text-white transition-colors hover:border-white/30 hover:bg-white/5 ${focusRing}`}
+                  className={`mt-3 shrink-0 ${secondaryButton}`}
                 >
                   Add your own
                 </button>
               </>
             )}
           </div>
+        ) : step === 3 && buildId ? (
+          <Build
+            id={buildId}
+            onRestart={() => {
+              setFile(null);
+              setStep(2);
+            }}
+          />
         ) : (
           <div className={stepBody}>
             <BackButton
               onClick={() => {
                 setFile(null);
-                setSent(false);
                 setStep(1);
               }}
             />
@@ -253,15 +263,7 @@ export default function Home() {
             <h2 className={`${selected.logo ? "mt-4" : ""} text-balance text-2xl font-bold tracking-tight`}>
               Upload skills for {selected.name}
             </h2>
-            {/* ponytail: the file is held in state — nothing sends it anywhere yet */}
-            {sent ? (
-              <p className="mt-6 flex h-12 items-center gap-2 text-sm font-medium">
-                <Icon className="size-4 shrink-0 text-harkx-teal">
-                  <path d="m4.5 12.5 5 5 10-11" />
-                </Icon>
-                Skills uploaded
-              </p>
-            ) : error ? (
+            {error ? (
               <p role="alert" className="mt-6 flex h-12 items-center text-sm font-medium text-red-400">
                 {error}
               </p>
@@ -282,15 +284,7 @@ export default function Home() {
                   </span>
                   <span className="mt-0.5 block text-[11px] text-gray-400">{formatSize(file.size)}</span>
                 </span>
-                <button
-                  onClick={() => setFile(null)}
-                  aria-label={`Remove ${file.name}`}
-                  className={`flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-white/10 hover:text-white ${focusRing}`}
-                >
-                  <Icon className="size-4">
-                    <path d="M6 6l12 12M18 6 6 18" />
-                  </Icon>
-                </button>
+                <RemoveButton name={file.name} onClick={() => setFile(null)} />
               </div>
             ) : (
               <label
@@ -320,16 +314,12 @@ export default function Home() {
                 </Icon>
               </label>
             )}
-            {file && !sent ? (
-              // ponytail: no backend to send to yet, so this just confirms locally
-              <button
-                onClick={() => setSent(true)}
-                className={`mt-3 h-11 w-full cursor-pointer rounded-full bg-white text-sm font-semibold text-black transition-colors hover:bg-gray-200 ${focusRing}`}
-              >
-                Upload skills
+            {file && !error ? (
+              <button onClick={upload} disabled={uploading} className={`mt-3 ${primaryButton}`}>
+                {uploading ? "Uploading…" : "Upload skills"}
               </button>
             ) : (
-              <p className={`mt-3 text-[11px] text-gray-400 ${error || sent ? "invisible" : ""}`}>
+              <p className={`mt-3 text-[11px] text-gray-400 ${error ? "invisible" : ""}`}>
                 A <span className="font-medium text-white">.zip</span> of your Skill, or a single <span className="font-medium text-white">.md</span>
               </p>
             )}

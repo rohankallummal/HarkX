@@ -1,0 +1,12 @@
+# e2b pinned below 2.35: newer releases need protobuf-py, whose native ext fails to import on Python 3.14/Windows
+deepagents==0.6.12
+e2b==2.34.0
+fastapi==0.141.1
+langchain-anthropic==1.7.2
+langchain-e2b==0.0.6
+langchain-mcp-adapters==0.3.2
+langgraph-checkpoint-postgres==3.1.2
+psycopg[binary,pool]==3.3.6
+python-dotenv==1.2.3
+python-multipart==0.0.32
+uvicorn==0.53.0

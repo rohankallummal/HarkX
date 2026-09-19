@@ -33,3 +33,20 @@ body {
 .card-spotlight:focus-within::before {
   opacity: 0.6;
 }
+
+/* ShinyText: a highlight sweeps across the text, right to left */
+.shiny-text {
+  background: linear-gradient(120deg, #b5b5b5 35%, #fff 50%, #b5b5b5 65%) 0 0 / 200% auto;
+  background-clip: text;
+  color: transparent;
+  animation: shine 2s linear infinite;
+}
+
+@keyframes shine {
+  from { background-position: 150% center; }
+  to { background-position: -50% center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shiny-text { animation: none; }
+}
