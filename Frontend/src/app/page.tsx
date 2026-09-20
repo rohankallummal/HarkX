@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import Build, { API } from "./Build";
 import { skillFileError } from "./skillFile";
-import { focusRing, formatSize, Icon, primaryButton, RemoveButton, secondaryButton, stepBody } from "./ui";
+import { focusRing, formatSize, Icon, noScrollbar, primaryButton, RemoveButton, secondaryButton, stepBody } from "./ui";
 
 type Integration = { name: string; logo?: string; glyph?: React.ReactNode };
 
@@ -50,12 +50,15 @@ const allIntegrations = categoryNames.flatMap(withTint);
 
 function Card({ children, round = false }: { children: React.ReactNode; round?: boolean }) {
   return (
-    <div className={`${round ? "rounded-full" : "w-full max-w-sm rounded-3xl"} bg-gradient-to-tr from-harkx-blue/20 to-harkx-green/20 p-[2px] transition-colors duration-500 hover:from-harkx-blue/40 hover:to-harkx-green/40`}>
+    // an expanded ask asks for a reading column, so the card widens to give it one
+    <div
+      className={`${round ? "rounded-full" : "w-full max-w-sm rounded-3xl has-[[data-expanded]]:max-w-2xl"} bg-gradient-to-tr from-harkx-blue/20 to-harkx-green/20 p-[2px] transition-[max-width,--tw-gradient-from,--tw-gradient-to] duration-300 hover:from-harkx-blue/40 hover:to-harkx-green/40 motion-reduce:transition-none`}
+    >
       <section
         onMouseMove={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect();
-          e.currentTarget.style.setProperty("--mouse-x", `${e.clientX - rect.left}px`);
-          e.currentTarget.style.setProperty("--mouse-y", `${e.clientY - rect.top}px`);
+          const { left, top } = e.currentTarget.getBoundingClientRect();
+          e.currentTarget.style.setProperty("--mouse-x", `${e.clientX - left}px`);
+          e.currentTarget.style.setProperty("--mouse-y", `${e.clientY - top}px`);
         }}
         className={`card-spotlight bg-[#1f1f1f] ${round ? "rounded-full" : "rounded-3xl"}`}
       >
@@ -71,9 +74,7 @@ function BackButton({ onClick }: { onClick: () => void }) {
       onClick={onClick}
       className={`absolute left-4 top-4 flex cursor-pointer items-center gap-1 rounded-md py-1 pl-1 pr-2 text-sm font-medium text-gray-400 transition-colors hover:text-white sm:left-6 ${focusRing}`}
     >
-      <Icon className="size-4">
-        <path d="M15 18 9 12l6-6" />
-      </Icon>
+      <Icon d="M15 18 9 12l6-6" className="size-4" />
       Back
     </button>
   );
@@ -121,10 +122,7 @@ export default function Home() {
     <main className="grid min-h-dvh place-items-center px-4">
       <Card round={step === 0}>
         {step === 0 ? (
-          <button
-            onClick={() => setStep(1)}
-            className={`flex size-40 cursor-pointer items-center justify-center rounded-full sm:size-56 ${focusRing}`}
-          >
+          <button onClick={() => setStep(1)} className={`flex size-40 cursor-pointer items-center justify-center rounded-full sm:size-56 ${focusRing}`}>
             <Image src="/logos/harkx-mark.svg" alt="HarkX" width={24} height={39} loading="eager" className="h-16 w-auto sm:h-24" />
           </button>
         ) : step === 1 ? (
@@ -152,11 +150,7 @@ export default function Home() {
                   maxLength={40}
                   className="h-11 w-full rounded-xl border border-white/15 bg-transparent px-4 text-sm text-white outline-none transition-colors placeholder:text-gray-500 focus:border-harkx-teal"
                 />
-                <button
-                  type="submit"
-                  disabled={!customName.trim()}
-                  className={primaryButton}
-                >
+                <button type="submit" disabled={!customName.trim()} className={primaryButton}>
                   Continue
                 </button>
               </form>
@@ -199,10 +193,7 @@ export default function Home() {
                   )}
                 </div>
                 {/* Fixed at exactly two rows of tiles; more than four scroll inside it (scrollbar hidden), so the card never grows. */}
-                <div
-                  key={q ? "search" : category}
-                  className="-mx-0.5 mt-3 h-[12.5rem] self-stretch overflow-y-auto p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                >
+                <div key={q ? "search" : category} className={`-mx-0.5 mt-3 h-[12.5rem] self-stretch overflow-y-auto p-0.5 ${noScrollbar}`}>
                   {shown.length ? (
                     <div className="grid grid-cols-2 gap-3">
                       {shown.map((integration) => (
@@ -249,6 +240,11 @@ export default function Home() {
             onRestart={() => {
               setFile(null);
               setStep(2);
+            }}
+            onFinish={() => {
+              setFile(null);
+              setBuildId(null);
+              setStep(0);
             }}
           />
         ) : (
@@ -309,9 +305,7 @@ export default function Home() {
                     }
                   }}
                 />
-                <Icon className="size-5">
-                  <path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />
-                </Icon>
+                <Icon d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" className="size-5" />
               </label>
             )}
             {file && !error ? (
