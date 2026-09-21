@@ -4,7 +4,7 @@ from typing import Literal
 
 from deepagents import create_deep_agent
 from deepagents.backends import CompositeBackend, StoreBackend
-from langchain_anthropic import ChatAnthropic
+from langchain_openai import ChatOpenAI
 from langchain_core.tools import tool
 from langgraph.types import interrupt
 
@@ -32,7 +32,12 @@ def build_agent(build, sandbox, mcp_tools, checkpointer, store):
 
     memory = lambda ns: StoreBackend(store=store, namespace=lambda _: ns)
     return create_deep_agent(
-        model=ChatAnthropic(model="claude-opus-5", api_key=os.environ["LLM_API_KEY"], max_tokens=16000),
+        model=ChatOpenAI(
+            model="moonshotai/kimi-k3",
+            base_url="https://openrouter.ai/api/v1",
+            api_key=os.environ["LLM_API_KEY"],
+            max_tokens=16000,
+        ),
         tools=[set_stage, ask_user, request_files, *mcp_tools],
         system_prompt=PROMPT,
         backend=CompositeBackend(

@@ -12,13 +12,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-import anthropic
+import openai
 import e2b
 import uvicorn
 from e2b import AsyncSandbox
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
+from deepagents.backends.sandbox import _map_edit_error
 from langchain_e2b import AsyncE2BSandbox
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -28,6 +29,10 @@ from psycopg.conninfo import make_conninfo
 from pydantic import BaseModel
 
 from agent import build_agent
+
+# langchain-e2b 0.0.6: AsyncE2BSandbox calls self._map_edit_error but never defines it.
+AsyncE2BSandbox._map_edit_error = staticmethod(_map_edit_error)  # noqa: SLF001
+
 
 PG = make_conninfo(host="localhost", port=5432, dbname="agent_memory", user="rohan", password=os.environ["PG_PASSWORD"])
 HOME = "/home/user"
@@ -75,8 +80,8 @@ app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000"], allo
 
 
 def reason(e: Exception) -> str:
-    if isinstance(e, anthropic.AuthenticationError):
-        return "The Anthropic API key is invalid or has expired."
+    if isinstance(e, openai.AuthenticationError):
+        return "The OpenRouter API key is invalid or has expired."
     if isinstance(e, e2b.AuthenticationException):
         return "The E2B API key is invalid or has expired."
     if isinstance(e, e2b.CommandExitException):

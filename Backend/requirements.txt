@@ -2,7 +2,8 @@
 deepagents==0.6.12
 e2b==2.34.0
 fastapi==0.141.1
-langchain-anthropic==1.7.2
+langchain-anthropic==1.7.2  # not used directly; deepagents imports it at module load
+langchain-openai==1.2.1
 langchain-e2b==0.0.6
 langchain-mcp-adapters==0.3.2
 langgraph-checkpoint-postgres==3.1.2
