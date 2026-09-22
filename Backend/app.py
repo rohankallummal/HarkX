@@ -86,7 +86,7 @@ def reason(e: Exception) -> str:
         return "The E2B API key is invalid or has expired."
     if isinstance(e, e2b.CommandExitException):
         return "The agent finished without producing an integration."
-    if isinstance(e, (e2b.SandboxException, e2b.TimeoutException, e2b.NotFoundException)):
+    if isinstance(e, e2b.SandboxException):  # TimeoutException and NotFoundException subclass it
         return "The build sandbox was terminated or became unavailable."
     return f"The build couldn't be completed: {e}"
 

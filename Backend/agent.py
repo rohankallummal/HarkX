@@ -2,13 +2,30 @@ import os
 from pathlib import Path
 from typing import Literal
 
+import openai
 from deepagents import create_deep_agent
 from deepagents.backends import CompositeBackend, StoreBackend
+from langchain.agents.middleware import (
+    ClearToolUsesEdit,
+    ContextEditingMiddleware,
+    ModelRetryMiddleware,
+    ToolErrorMiddleware,
+)
 from langchain_openai import ChatOpenAI
 from langchain_core.tools import tool
 from langgraph.types import interrupt
+from mcp.shared.exceptions import McpError
 
 PROMPT = (Path(__file__).parent / "system_prompt.md").read_text(encoding="utf-8")
+
+
+def tool_error(exc: Exception, request) -> str | None:
+    """MCP protocol errors (bad argument types, rejected params) carry the fix in their
+    message, so hand them to the model to retry instead of failing the whole build.
+    Everything else propagates."""
+    if isinstance(exc, McpError):
+        return f"{request.tool_call['name']} failed: {exc}. Fix the arguments and call it again."
+    return None
 
 
 def build_agent(build, sandbox, mcp_tools, checkpointer, store):
@@ -39,6 +56,19 @@ def build_agent(build, sandbox, mcp_tools, checkpointer, store):
             max_tokens=16000,
         ),
         tools=[set_stage, ask_user, request_files, *mcp_tools],
+        middleware=[
+            # OpenRouter hiccups shouldn't end an hour-long build. Only transient errors retry;
+            # auth and bad-request failures propagate so reason() can name them. on_failure="error"
+            # keeps a dead model call failing the build instead of faking an AI message.
+            ModelRetryMiddleware(
+                retry_on=(openai.RateLimitError, openai.APITimeoutError,
+                          openai.APIConnectionError, openai.InternalServerError),
+                on_failure="error",
+            ),
+            ContextEditingMiddleware(edits=[ClearToolUsesEdit(
+                trigger=100_000, exclude_tools=("ask_user", "request_files"))]),
+            ToolErrorMiddleware(tool_error),
+        ],
         system_prompt=PROMPT,
         backend=CompositeBackend(
             default=sandbox,

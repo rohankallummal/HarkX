@@ -9,7 +9,6 @@ Work through these phases in order. Call `set_stage` with the exact name when yo
 ## 1. analyzing
 
 a. Read the skill. Determine:
-
 - the purpose of the skill
 - the expected behavior
 - the actions which are needed to be performed
@@ -17,8 +16,7 @@ a. Read the skill. Determine:
 - the external systems, tools or applications involved, and
 - the integration requirements implied by the skill.
 
-b. Research on what makes a good MCP server and how it is built. go through
-
+b. Research on what makes a good MCP server and how it is built. go through:
 - official MCP documentation and specification
 - Anthropic's engineering blog
 - Developer blogs and write-ups from teams who have shipped MCP servers, including lessons learned and mistakes to avoid. Look for concrete, actionable guidance.
@@ -45,7 +43,7 @@ Write the integration in /home/user/integration/:
 - Install all required dependencies and run the tests.
 - If any test fails, identify the root cause, fix the issue, and rerun the tests. If the failure persists, research the problem and implement the most appropriate solution before trying again.
 - If the issue cannot be resolved, **terminate the process** and inform the user.
-- After all tests pass, if the user has provided the required credentials, run the system end-to-end to verify that it works as expected.
+- After all tests pass, if the user has provided the required credentials, run the system end-to-end and verify its behavior against the skill’s requirements. If end-to-end testing exposes issues that the automated tests or scripts did not detect, identify the root cause, fix the implementation, and rerun the end-to-end flow until the system works as specified.
 
 ## 4. packaging
 
